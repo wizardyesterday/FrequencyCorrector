@@ -298,12 +298,6 @@ void FrequencyErrorEstimator::run(
       //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   } // for
 
-  if (sumIm == 0)
-  {
-    // Avoid passing Im{sum} value of 0 to the atan2() function.
-    sumIm = 0.000001;
-  } // if
-
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   // Compute the Arg() function.  Note that Arg() represents the
   // principal value of arg().  The principal value is enforced
