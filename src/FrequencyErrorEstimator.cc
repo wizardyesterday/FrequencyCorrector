@@ -250,6 +250,10 @@ void FrequencyErrorEstimator::reset(void)
   collected data will be cleared.  The next accumulation of data can now
   occur, thus, repeating the cycle.
 
+  As a side note, the paper that prompted me to design this system is:
+  "Digital Carrier Frequency Estimation For Multilevel CPM Signals" by
+  A. N. D'Andrea, A. Ginesi and U. Mengali.
+
   Calling Sequence: run(magnitudePtr,phasePtr,ufferLength)
 
   Inputs:
