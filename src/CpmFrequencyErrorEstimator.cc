@@ -1,12 +1,12 @@
 //************************************************************************
-// file name: FrequencyErrorEstimator.cc
+// file name: CpmFrequencyErrorEstimator.cc
 //************************************************************************
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <math.h>
 
-#include "FrequencyErrorEstimator.h"
+#include "CpmFrequencyErrorEstimator.h"
 
 using namespace std;
 
@@ -42,12 +42,12 @@ using namespace std;
 
 /*****************************************************************************
 
-  Name: FrequencyErrorEstimator
+  Name: CpmFrequencyErrorEstimator
 
   Purpose: The purpose of this function is to serve as the constructor for
-  an instance of an FrequencyErrorEstimator.
+  an instance of an CpmFrequencyErrorEstimator.
 
-  Calling Sequence: FrequencyErrorEstimator(sampleRate,
+  Calling Sequence: CpmFrequencyErrorEstimator(sampleRate,
                                             lag,
                                             accumulationCountThreshold,
                                             callbackPtr,
@@ -84,7 +84,7 @@ using namespace std;
     None.
 
 *****************************************************************************/
-FrequencyErrorEstimator::FrequencyErrorEstimator(
+CpmFrequencyErrorEstimator::CpmFrequencyErrorEstimator(
   float sampleRate,
   int32_t lag,
   uint32_t accumulationCountThreshold,
@@ -131,16 +131,16 @@ FrequencyErrorEstimator::FrequencyErrorEstimator(
 
   return;
 
-} // FrequencyErrorEstimator
+} // CpmFrequencyErrorEstimator
 
 /*****************************************************************************
 
-  Name: ~FrequencyErrorEstimator
+  Name: ~CpmFrequencyErrorEstimator
 
   Purpose: The purpose of this function is to serve as the destructor for
-  an instance of an FrequencyErrorEstimator.
+  an instance of an CpmFrequencyErrorEstimator.
 
-  Calling Sequence: ~FrequencyErrorEstimator()
+  Calling Sequence: ~CpmFrequencyErrorEstimator()
 
   Inputs:
 
@@ -151,7 +151,7 @@ FrequencyErrorEstimator::FrequencyErrorEstimator(
     None.
 
 *****************************************************************************/
-FrequencyErrorEstimator::~FrequencyErrorEstimator(void)
+CpmFrequencyErrorEstimator::~CpmFrequencyErrorEstimator(void)
 {
 
   // Release resources.
@@ -159,7 +159,7 @@ FrequencyErrorEstimator::~FrequencyErrorEstimator(void)
 
   return;
 
-} // ~FrequencyErrorEstimator
+} // ~CpmFrequencyErrorEstimator
 
 /*****************************************************************************
 
@@ -183,7 +183,7 @@ FrequencyErrorEstimator::~FrequencyErrorEstimator(void)
     None.
 
 *****************************************************************************/
-void FrequencyErrorEstimator::reset(void)
+void CpmFrequencyErrorEstimator::reset(void)
 {
   uint32_t i;
 
@@ -257,7 +257,7 @@ void FrequencyErrorEstimator::reset(void)
     None.
 
 *****************************************************************************/
-void FrequencyErrorEstimator::run(
+void CpmFrequencyErrorEstimator::run(
   int16_t *inPhasePtr,
   int16_t *quadrturePtr,
   uint32_t bufferLength)
@@ -402,7 +402,7 @@ void FrequencyErrorEstimator::run(
     result.  The resolution is FREQUENCY_ERROR_RESOLUTION_IN_HZ.
 
 *****************************************************************************/
-int16_t FrequencyErrorEstimator::retrieveFrequencyError(void)
+int16_t CpmFrequencyErrorEstimator::retrieveFrequencyError(void)
 {
   int16_t frequencyError;
   uint32_t i;

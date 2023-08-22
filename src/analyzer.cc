@@ -8,7 +8,7 @@
 #include <math.h>
 #include <unistd.h>
 
-#include "FrequencyErrorEstimator.h"
+#include "CpmFrequencyErrorEstimator.h"
 
 int16_t inPhaseBuffer[16384];
 int16_t quadratureBuffer[16384];
@@ -57,11 +57,11 @@ int main(int argc,char **argv)
   uint32_t count;
   int8_t inputBuffer[16384];
   float sampleRate;
-  FrequencyErrorEstimator *estimatorPtr;
+  CpmFrequencyErrorEstimator *estimatorPtr;
 
   // Instantiate a frequency error estimator.
-  estimatorPtr = new FrequencyErrorEstimator(256000,2,100,
-                                               processFrequencyError,NULL);
+  estimatorPtr = new CpmFrequencyErrorEstimator(256000,2,100,
+                                                processFrequencyError,NULL);
 
   // Set up for loop entry.
   done = false;

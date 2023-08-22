@@ -1,31 +1,31 @@
 //**************************************************************************
-// file name: FrequencyErrorEstimator.h
+// file name: CpmFrequencyErrorEstimator.h
 //**************************************************************************
 //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 // This class implements a signal processing block that performs
 // estimation of frequency error of a signal using autocorrelation
-// methods.
+// methods.  The signals of interest are CPM signals.
 //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 
-#ifndef __FREQUENCYERRORESTIMATOR__
-#define __FREQUENCYERRORESTIMATOR__
+#ifndef __CPMFREQUENCYERRORESTIMATOR__
+#define __CPMFREQUENCYERRORESTIMATOR__
 
 #include <stdint.h>
 
-class FrequencyErrorEstimator
+class CpmFrequencyErrorEstimator
 {
   //***************************** operations **************************
 
   public:
 
-  FrequencyErrorEstimator(float sampleRate,
-                            int32_t lag,
-                            uint32_t numberOfAccumulations,
-                            void (*callbackPtr)(int16_t frequencyError,
-                                                void *contextPtr),
-                                                void *callbackContextPtr);
+  CpmFrequencyErrorEstimator(float sampleRate,
+                              int32_t lag,
+                              uint32_t numberOfAccumulations,
+                              void (*callbackPtr)(int16_t frequencyError,
+                                                  void *contextPtr),
+                                                  void *callbackContextPtr);
 
-  ~FrequencyErrorEstimator(void);
+  ~CpmFrequencyErrorEstimator(void);
 
   void reset(void);
   void run(int16_t *inPhasePtr,int16_t *quadrturePtr,uint32_t bufferLength);
@@ -54,5 +54,5 @@ class FrequencyErrorEstimator
   uint32_t *histogramPtr;
 };
 
-#endif //__FREQUENCYERRORESTIMATOR__
+#endif //__CPMFREQUENCYERRORESTIMATOR__
 
