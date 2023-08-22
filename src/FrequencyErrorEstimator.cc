@@ -32,7 +32,7 @@ using namespace std;
 // have a frequency acceptance gate that is a multiple of 50Hz,
 // a value of 3750Hz is chosen.
 //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
-#define MAXIMUM_FREQUENCY_ERROR_IN_HZ (3750)
+#define MAXIMUM_FREQUENCY_ERROR_IN_HZ (5000)
 //#define FREQUENCY_ERROR_RESOLUTION_IN_HZ (50)
 #define FREQUENCY_ERROR_RESOLUTION_IN_HZ (2)
 
@@ -47,15 +47,15 @@ using namespace std;
   Purpose: The purpose of this function is to serve as the constructor for
   an instance of an FrequencyErrorEstimator.
 
-  Calling Sequence: FrequencyErrorEstimator(Fs,
-                                              lag,
-                                              accumulationCountThreshold,
-                                              callbackPtr,
-                                              callbackContextPtr);
+  Calling Sequence: FrequencyErrorEstimator(sampleRate,
+                                            lag,
+                                            accumulationCountThreshold,
+                                            callbackPtr,
+                                            callbackContextPtr);
 
   Inputs:
 
-    Fs - The sample rate in S/s.
+    sampleRate - The sample rate in S/s.
 
     lag - The lag that will be used for crosscorrelation purposes.
 
@@ -85,7 +85,7 @@ using namespace std;
 
 *****************************************************************************/
 FrequencyErrorEstimator::FrequencyErrorEstimator(
-  float Fs,
+  float sampleRate,
   int32_t lag,
   uint32_t accumulationCountThreshold,
   void (*callbackPtr)(int16_t frequencyError,void *contextPtr),
@@ -93,7 +93,7 @@ FrequencyErrorEstimator::FrequencyErrorEstimator(
 {
 
   // Retrieve the sample rate.
-  this->Fs = Fs;
+  this->sampleRate = sampleRate;
 
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   // Ensure that no insane values are used.
@@ -219,29 +219,14 @@ void FrequencyErrorEstimator::reset(void)
   function is Arg() (notice the capitol A which indicates principal
   value (from complex variable theory).
 
-  Now, these computations are only carried out if the incoming signal
-  exceeds a threshold.  Given that the signal does exceed the threshold,
-  a detection counter is incremented that determines the number of times
-  that the signal had exceeded the threshold.
+  After the autocorrelation is complete, the error frequency is next
+  computed as ,
 
-  Given that the detection counter exceeds the number of times that the
-  threshold is equal to, the following steps are carried out.
+    frequencyError = (sampleRate * Arg(sum))/(2 * PI * lag)
 
-  The error frequency is next computed as ,
-
-    frequencyError = (Fs * Arg(sum))/(2 * PI * lag)
-
-  Finally, given that the signal had exceed the threshold, a histogram,
-  that represents the distribution of estimated error frequencies, is
-  updated.  Let it be noted that the signal must exceed the threshold
-  a number of times that is equal to the value of bufferLength minus the
-  lag.  For this reason, the number of samples presented to this function
-  should be short enough such that it is associated with the minimum time
-  that a signal might be available. Noting that the sample rate is 24000
-  Samples/second, a bufferLength value of 2400 would be 0.1 seconds.
-  Generally a voice transmission would exist longer than 0.1 seconds, so
-  it is reasonable to expect the number of signal detections to be equal
-  to the bufferLength parameter minus the lag. 
+  Finally,  a histogram, that represents the distribution of estimated
+  error frequencies, is updated.  Noting that the sample rate is 256000
+  Samples/second, a bufferLength value of 8192 would be 32 milliseconds.
 
   Now, if enough collections have occurred (this function has been invoked
   a configurable number of times), if an asynchronous model is being used
@@ -254,15 +239,15 @@ void FrequencyErrorEstimator::reset(void)
   "Digital Carrier Frequency Estimation For Multilevel CPM Signals" by
   A. N. D'Andrea, A. Ginesi and U. Mengali.
 
-  Calling Sequence: run(magnitudePtr,phasePtr,ufferLength)
+  Calling Sequence: run(inPhasePtr,quadraturePtr,ufferLength)
 
   Inputs:
 
-    magnitudePtr - A pointer to signal envelope data.
+    inPhasePtr - A pointer to the in-phase component of the signal
+    samples.
 
-    phasePtr - A pointer to signal phase values.  The phase values are
-    signed fractional values with a sign bit, 2 mantissa bits, and 13
-    fractional bits yielding a range of -PI < phase < PI.
+    quadraturePtr - A pointer to the quadrature component of the signal
+    samples.
 
     bufferLength - The number of samples in each buffer referenced by
     magnitudePtr and phasePtr.
@@ -284,7 +269,6 @@ void FrequencyErrorEstimator::run(
   float a, b, c, d;
   uint32_t histogramIndex;
   int16_t quantizedFrequencyError;
-  bool dummy;
 
   // Ensure that intermediate results are cleared.
   sumRe = 0;
@@ -345,7 +329,7 @@ void FrequencyErrorEstimator::run(
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 
   // The frequency error is the scaled value of Arg(sum).
-  frequencyError = (Fs * deltaTheta) / (2 * M_PI * lag);
+  frequencyError = (sampleRate * deltaTheta) / (2 * M_PI * lag);
 
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   // Make sure that the frequency error is within tolerance.
@@ -358,6 +342,12 @@ void FrequencyErrorEstimator::run(
     // Indicate that one more accumulation has occurred.
     accumulationCount++;
 
+    //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+    // The frequency error is within bounds for processing, so
+    // update the histogram.  This histogram is used for arg Max
+    // processing later on.  This is my way of performing crude
+    // filtering of the frequency error.
+    //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
     histogramIndex =
       (int32_t)roundf(frequencyError / FREQUENCY_ERROR_RESOLUTION_IN_HZ);
 
@@ -365,6 +355,7 @@ void FrequencyErrorEstimator::run(
     histogramIndex += ((HISTOGRAM_SIZE - 1) / 2);
 
     histogramPtr[histogramIndex]++;
+    //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 
     // We have enough data for a good statistical average.
     if (accumulationCount >= accumulationCountThreshold)
@@ -373,7 +364,7 @@ void FrequencyErrorEstimator::run(
       if (callbackPtr != NULL)
       {
          // We know we have signal detection, hence, ignore the result.
-         retrieveFrequencyError(&quantizedFrequencyError);
+         quantizedFrequencyError = retrieveFrequencyError();
 
         // Notify the client of new data.
         callbackPtr(quantizedFrequencyError,callbackContextPtr);
@@ -398,27 +389,28 @@ void FrequencyErrorEstimator::run(
   as valid if a signal has been detected, otherwise, the value is not
   usable by the caller.
 
-  Note that the caller the accumulateFrequencyError() method if a
-  callback function was provided by the client.  If a callback
-  function was not provided by the client, it is the responsibility of
-  the client to invoke this function and invoke the reset() method to
-  start with a clean slate for the next collection of data.
+  Note that if a callback function was provided to this system, the run()
+  method will will invoke the reset() method after the callback function
+  is onvoked.
+  If a callback function was not provided by the client, it is the
+  responsibility of the client to invoke this function and invoke the 
+  reset() method to tart with a clean slate for the next collection of data.
 
   Calling Sequence: retrieveFrequencyError(frequencyErrorPtr)
 
   Inputs:
 
-    frequencyErrorPtr - A pointer to storage of the frequency error
-    result.  The resolution is FREQUENCY_ERROR_RESOLUTION_IN_HZ.
+     None.
 
   Outputs:
 
-    None.
+   frequencyError - A pointer to storage of the frequency error
+    result.  The resolution is FREQUENCY_ERROR_RESOLUTION_IN_HZ.
 
 *****************************************************************************/
-void FrequencyErrorEstimator::retrieveFrequencyError(
-  int16_t *frequencyErrorPtr)
+int16_t FrequencyErrorEstimator::retrieveFrequencyError(void)
 {
+  int16_t frequencyError;
   uint32_t i;
   uint16_t indexOfMaximum;
 
@@ -436,10 +428,10 @@ void FrequencyErrorEstimator::retrieveFrequencyError(
 
   // Convert index into frequency with the appropriate resolution.
   // The dc index must be accounted for, hence, the (-1).
-  *frequencyErrorPtr = indexOfMaximum - ((HISTOGRAM_SIZE - 1) / 2);
-  *frequencyErrorPtr *= FREQUENCY_ERROR_RESOLUTION_IN_HZ;
+  frequencyError = indexOfMaximum - ((HISTOGRAM_SIZE - 1) / 2);
+  frequencyError *= FREQUENCY_ERROR_RESOLUTION_IN_HZ;
 
-  return;
+  return (frequencyError);
 
 } // retrieveFrequencyError
 

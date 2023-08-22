@@ -18,7 +18,7 @@ class FrequencyErrorEstimator
 
   public:
 
-  FrequencyErrorEstimator(float Fs,
+  FrequencyErrorEstimator(float sampleRate,
                             int32_t lag,
                             uint32_t numberOfAccumulations,
                             void (*callbackPtr)(int16_t frequencyError,
@@ -29,13 +29,13 @@ class FrequencyErrorEstimator
 
   void reset(void);
   void run(int16_t *inPhasePtr,int16_t *quadrturePtr,uint32_t bufferLength);
-  void retrieveFrequencyError(int16_t *frequencyErrorPtr);
+  int16_t retrieveFrequencyError(void);
 
   //***************************** attributes **************************
   private:
 
   // This is the sampling rate in S/s.
-  float Fs;
+  float sampleRate;
 
   // This is the lag that will be used for crosscorrelation.
   int16_t lag;
