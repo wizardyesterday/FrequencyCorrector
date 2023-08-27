@@ -104,6 +104,10 @@ void LoopFilter::reset(void)
 
   Purpose: The purpose of this function is to filter data using a
   proportional-integral method.  This is a first-order filter.
+  This filter is used specifically for a phase-locked loop that uses a
+  phase detector that outputs a phase error between -PI and PI.  Because
+  of this, the filter ensures that the output has magnitude no greater
+  than PI.
 
   Calling Sequence: y = filterData(x)
 
@@ -151,6 +155,24 @@ float LoopFilter::filterData(float x)
  
   // Compute output.
   y = y1 + y2;
+
+  //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+  // Make sure that y doesn't grow without bound.
+  //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+  if (y > M_PI)
+  {
+    // Clip it.
+    y = M_PI;
+  } // if
+  else
+  {
+    if (y < (-M_PI))
+    {
+      // Clip it.
+      y = -M_PI;
+    } // if
+  } // else
+  //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
  
   return (y);
 
