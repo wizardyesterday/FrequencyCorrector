@@ -35,6 +35,7 @@ class FrequencyTranslator
   // Utility functions.
   //*******************************************************************
   uint32_t demodulateSignal(int8_t *bufferPtr,uint32_t bufferLength);
+  void derotateSignal(int8_t *bufferPtr,uint32_t bufferLength);
 
   //*******************************************************************
   // Attributes.

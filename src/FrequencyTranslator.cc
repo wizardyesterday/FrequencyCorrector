@@ -138,19 +138,7 @@ void FrequencyTranslator::resetDemodulator(void)
   Name: acceptIqData
 
   Purpose: The purpose of this function is to perform the high level
-  processing that is associated with the demodulation of a signal.
-  The signal processing that is performed is now described.  First, the
-  phase angle of the signal is computed by the equation:
-  theta(n) = atan[Q(n) / i(n)].  Next, the phase angle of the previous IQ
-  sample is subtracted from theta(n).  This approximates the derivative of
-  the phase angle with respect to time.  Note that omega(n) = dtheta(n)/dn
-  represents the instantaneous frequency of the signal.  Due to the branch
-  cut of the atan() function at PI radians, processing is performed to
-  ensure that the phase difference satisfies the equation,
-  -PI < dtheta < PI.  Finally, the demodulated signal is multiplied by the
-  demodulator gain, and the result is a scaled demodulated signal.  For
-  speed of processing, a table lookup is performed for computation of the
-  atan() function.
+  processing that is associated with the processing of a signal.
 
   Calling Sequence: acceptIqData(bufferPtr,bufferLength)
 
@@ -175,7 +163,11 @@ void FrequencyTranslator::acceptIqData(
   // Demodulate the signal.
   sampleCount = demodulateSignal(bufferPtr,bufferLength);
 
+  // We need this for derotating the signal.
   computeFrequencyError(sampleCount);
+
+  // Get the signal to baseband.
+  derotateSignal(bufferPtr,bufferLength);
 
   return;
 
@@ -257,7 +249,7 @@ uint32_t FrequencyTranslator::demodulateSignal(int8_t *bufferPtr,
 
 /*****************************************************************************
 
-  Name: getFrequencyError
+  Name: computeFrequencyError
 
   Purpose: The purpose of this function is to compute the frequency
   error in a block of IQ samples.
@@ -282,6 +274,7 @@ void FrequencyTranslator::computeFrequencyError(uint32_t sampleCount)
   // Reference the begining of the demodulated data.
   dataPtr = demodulatedData;
 
+  // This represents a frequency error over a block of IQ data.
   sum = 0;
 
   for (i = 0; i < sampleCount; i++)
@@ -292,24 +285,29 @@ void FrequencyTranslator::computeFrequencyError(uint32_t sampleCount)
     dataPtr++;
   } // for
 
+  // Convert to an average frequency error for this block of data.
   sum /= sampleCount;
 
+  // Accumulate the next average.
   accumulatedFrequencyError += sum;
 
+  // One more measurement has been made.
   frequencyMeasurementCount++;
 
   if (frequencyMeasurementCount == numberOfAverages)
   {
-    // Convert to average value.
+    // Convert to average value of the averages.
     accumulatedFrequencyError /= numberOfAverages;
 
     // Map to actual frequency.
     frequencyError = accumulatedFrequencyError * demodulatorGain;
 
+    // Set the NCO to the negative of the frequency error.
+    ncoPtr->setFrequency(-frequencyError);
+
     // Reset for the next set of measurements.
     accumulatedFrequencyError = 0;
     frequencyMeasurementCount = 0;
-
   } // if
 
   return;
@@ -342,3 +340,68 @@ float FrequencyTranslator::getFrequencyError(void)
 
 } // getFrequencyError
 
+/*****************************************************************************
+
+  Name: derotateSignal
+
+  Purpose: The purpose of this function is to derotate a block of IQ data.
+
+  Calling Sequence: derotateSignal(bufferPtr,bufferLength)
+
+  Inputs:
+
+    bufferPtr - A pointer to IQ data.
+
+    bufferLength - The number of bytes contained in the buffer that is
+    in the buffer.
+
+  Outputs:
+
+    None.
+
+*****************************************************************************/
+void FrequencyTranslator::derotateSignal(
+  int8_t *bufferPtr,
+  uint32_t bufferLength)
+{
+  uint32_t i;
+  float iIn;
+  float qIn;
+  float iNco;
+  float qNco;
+  float iOut;
+  float qOut;
+
+  for (i = 0; i < bufferLength; i += 2)
+  {
+    // Retrieve in-phase component.
+    iIn = bufferPtr[i];
+
+    // Retrieve quadrature component.
+    qIn = bufferPtr[i+1];
+
+    // Retrieve the complex NCO output.
+    ncoPtr->run(&iNco,&qNco);
+
+    //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+    // Perform the frequency translation.  From complex analysis,
+    // (a + jb)(c + jd) = (ac - bd) + j(bc + ad).
+    // In our case,
+    // iIn is a.
+    // qIn is b.
+    // iNco is c.
+    // qNco is d.
+    //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+    // Compute in-phase component of output.
+    iOut = (iIn * iNco) - (qIn * qNco);
+
+    // Compute quadrature component of output.
+    qOut = (qIn * iNco) + (iIn * qNco);    
+    //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+
+    // Store the outputs in place.
+    bufferPtr[i] = (int8_t)iOut;
+    bufferPtr[i+1] = (int8_t)qOut;
+  } // for  
+
+} // derotateSignal
