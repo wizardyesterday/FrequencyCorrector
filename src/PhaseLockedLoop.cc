@@ -98,11 +98,14 @@ PhaseLockedLoop::PhaseLockedLoop(float sampleRate)
 
  //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 
-  // Instatiate the NCO at a free-running frequency of 200Hz.
-  ncoPtr = new Nco(sampleRate,200);
-
   // Instantiate the loop filter.
   filterPtr = new LoopFilter(Kp,Ki);
+
+  // Instantiate the phase detector.
+  detectorPtr = new PhaseDetector(Kd);
+
+  // Instatiate the NCO at a free-running frequency of 200Hz.
+  ncoPtr = new Nco(sampleRate,200);
 
   return;
 
@@ -130,14 +133,19 @@ PhaseLockedLoop::~PhaseLockedLoop(void)
 {
 
   // Release resources.
-  if (ncoPtr != NULL)
+  if (detectorPtr != NULL)
   {
-    delete ncoPtr;
+    delete detectorPtr;
   } // if
 
   if (filterPtr != NULL)
   {
     delete filterPtr;
+  } // if
+
+  if (ncoPtr != NULL)
+  {
+    delete ncoPtr;
   } // if
 
   return;

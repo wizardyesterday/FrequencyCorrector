@@ -16,8 +16,9 @@
 #include <unistd.h>
 #include <math.h>
 
-#include "Nco.h"
+#include "PhaseDetector.h"
 #include "LoopFilter.h"
+#include "Nco.h"
 
 class PhaseLockedLoop
 {
@@ -77,9 +78,9 @@ class PhaseLockedLoop
   // Deadband for lock.
   float lockErrorThreshold;
 
-  Nco *ncoPtr;
-
+  PhaseDetector *detectorPtr;
   LoopFilter *filterPtr;
+  Nco *ncoPtr;
 };
 
 #endif // __PHASELOCKEDLOOP__
