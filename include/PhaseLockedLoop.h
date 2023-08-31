@@ -29,18 +29,17 @@ class PhaseLockedLoop
   PhaseLockedLoop(float sampleRate);
  ~PhaseLockedLoop(void);
 
-  float run(float iValue,float qValue);
-  bool derotateSignal(int8_t iData,int8_t qData);
+  void acceptIqData(int8_t *bufferPtr,uint32_t bufferLength);
   bool isLocked(void);
+  void reset(void);
 
   private:
 
   //*******************************************************************
   // Utility functions.
   //*******************************************************************
-  // This is the phase detector.
-  float computePhaseError(float iReference,float qReference,
-                          float *iNcoOutputPtr,float *qNcoOutputPtr);
+  float run(float iValue,float qValue);
+  void derotateSignal(int8_t *bufferPtr,uint32_t bufferLength);
 
   //*******************************************************************
   // Attributes.
@@ -70,10 +69,6 @@ class PhaseLockedLoop
 
   // This is, after all, a sampled system.
   float sampleRate;
-
-  // Current output values of NCO.
-  float iNcoOutput;
-  float qNcoOutput;
 
   // Deadband for lock.
   float lockErrorThreshold;

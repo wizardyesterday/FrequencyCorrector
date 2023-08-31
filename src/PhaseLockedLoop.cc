@@ -152,15 +152,14 @@ PhaseLockedLoop::~PhaseLockedLoop(void)
 
 } // ~PhaseLockedLoop
 
-#if 0
 /*****************************************************************************
 
-  Name: resetDemodulator
+  Name: reset
 
-  Purpose: The purpose of this function is to reset the demodulator to its
+  Purpose: The purpose of this function is to reset the PLL to its
   initial condition.
 
-  Calling Sequence: resetDemodulator()
+  Calling Sequence: reset()
 
   Inputs:
 
@@ -171,15 +170,19 @@ PhaseLockedLoop::~PhaseLockedLoop(void)
     None.
 
 *****************************************************************************/
-void PhaseLockedLoop::resetDemodulator(void)
+void PhaseLockedLoop::reset(void)
 {
 
-  // Initial phase angle for d(theta)/dt computation.
-  previousTheta = 0;
+  // Reset the dynamic components of the system.
+  filterPtr->reset();
+  ncoPtr->reset();
+
+  // Set the free-running frequency to 200Hz.
+  ncoPtr->setFrequency(200);
 
   return;
 
-} // resetDemodulator
+} // reset
 
 /*****************************************************************************
 
@@ -206,95 +209,12 @@ void PhaseLockedLoop::acceptIqData(
   int8_t *bufferPtr,
   uint32_t bufferLength)
 {
-  uint32_t sampleCount;
-
-  // Demodulate the signal.
-  sampleCount = demodulateSignal(bufferPtr,bufferLength);
-
-  // We need this for derotating the signal.
-  computeFrequencyError(sampleCount);
-
-  // Get the signal to baseband.
-  derotateSignal(bufferPtr,bufferLength);
 
   return;
 
 } // acceptIqData
 
-/*****************************************************************************
-
-  Name: demodulateSignal
-
-  Purpose: The purpose of this function is to demodulate an FM signal that
-  is stored in the iData[] and qData[] arrays.
-
-  Calling Sequence: demodulateSignal(bufferPtr,bufferLength)
-
-  Inputs:
-
-    bufferPtr - A pointer to IQ data.
-
-    bufferLength - The number of bytes contained in the buffer that is
-    in the buffer.
-
-  Outputs:
-
-    sampleCount - The number of samples stored in the demodulatedData[]
-    array.
-
-*****************************************************************************/
-uint32_t PhaseLockedLoop::demodulateSignal(int8_t *bufferPtr,
-                                       uint32_t bufferLength)
-{
-  uint32_t sampleCount;
-  uint32_t i;
-  uint8_t iData, qData;
-  float theta;
-  float deltaTheta;
-
-  // We're mapping interleaved data into two separate buffers.
-  sampleCount = bufferLength / 2;
-
-  for (i = 0; i < sampleCount; i++)
-  {
-    // Compute lookup table indices.
-    iData = (uint8_t)bufferPtr[2 * i] + 128;
-    qData = (uint8_t)bufferPtr[(2 * i) + 1] + 128;
-
-    // Compute phase angle.
-    theta = atan2LookupTable[qData][iData];
-
-    //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
-    // Compute d(theta)/dt.
-    //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
-    deltaTheta = theta - previousTheta;
-
-    //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
-    // We want -M_PI <= deltaTheta <= M_PI.
-    //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
-    while (deltaTheta > M_PI)
-    {
-      deltaTheta -= (2 * M_PI);
-    } // while
-
-    while (deltaTheta < (-M_PI))
-    {
-      deltaTheta += (2 * M_PI);
-    } // while
-    //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
-
-    // Store the normalized demodulated data.
-    demodulatedData[i] = deltaTheta;
- 
-    // Update our last phase angle for the next iteration.
-    previousTheta = theta;
-
-  } // for
-
-  return (sampleCount);
-
-} // demodulateSignal
-
+#if 0
 /*****************************************************************************
 
   Name: computeFrequencyError
