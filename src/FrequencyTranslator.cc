@@ -24,7 +24,7 @@ static float atan2LookupTable[256][256];
 
   Inputs:
 
-    pcmCallbackPtr - The sample rate of the IQ data in S/s.
+    sampleRate - The sample rate of the IQ data in S/s.
 
     numberOfAverages - The number of frequency errors to average.
 

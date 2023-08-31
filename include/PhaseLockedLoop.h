@@ -17,6 +17,7 @@
 #include <math.h>
 
 #include "Nco.h"
+#include "LoopFilter.h"
 
 class PhaseLockedLoop
 {
@@ -24,7 +25,7 @@ class PhaseLockedLoop
 
   public:
 
-  PhaseLockedLoop(DisplayType displayType,float sampleRate);
+  PhaseLockedLoop(float sampleRate);
  ~PhaseLockedLoop(void);
 
   float run(float iValue,float qValue);
@@ -40,11 +41,35 @@ class PhaseLockedLoop
   float computePhaseError(float iReference,float qReference,
                           float *iNcoOutputPtr,float *qNcoOutputPtr);
 
-  void frequency sweeper(float startFrequency, float endFrequency);
-
   //*******************************************************************
   // Attributes.
   //*******************************************************************
+  
+  //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+  // Loop parameters. 
+  //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+ // Noise equivalent bandwidth.
+  float Bn;
+
+  // Damping factor.
+  float zeta;
+
+  // NCO gain.
+  float K0;
+
+  // Phase detector gain.
+  float Kd;
+
+  // Proportional gain of loop filter.
+  float Kp;
+
+  // Integrator gain of loop filter.
+  float Ki;
+  //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+
+  // This is, after all, a sampled system.
+  float sampleRate;
+
   // Current output values of NCO.
   float iNcoOutput;
   float qNcoOutput;
@@ -52,10 +77,9 @@ class PhaseLockedLoop
   // Deadband for lock.
   float lockErrorThreshold;
 
-  // Lock acquisition support.
-  float currentSweeperFrequency;
+  Nco *ncoPtr;
 
-  NCO *ncoPtr;
+  LoopFilter *filterPtr;
 };
 
 #endif // __PHASELOCKEDLOOP__
