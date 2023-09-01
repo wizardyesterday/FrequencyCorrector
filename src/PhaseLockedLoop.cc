@@ -209,12 +209,25 @@ void PhaseLockedLoop::acceptIqData(
   int8_t *bufferPtr,
   uint32_t bufferLength)
 {
+  uint32_t i;
+  float frequencyError;
+
+  for (i = 0; i < bufferLength; i+= 2)
+  {
+    // First, the frequency offset, from baseband is computed.
+    frequencyError = computeFrequencyError(bufferPtr[i],bufferPtr[i+1]); 
+
+    // Set the NCO to the negative of the frequency error.
+    ncoPtr->setFrequency(-frequencyError);
+
+    // Perform the frequency correction.
+    derotateSignal(&bufferPtr[i],&bufferPtr[i+1]);
+  } // for
 
   return;
 
 } // acceptIqData
 
-#if 0
 /*****************************************************************************
 
   Name: computeFrequencyError
@@ -233,80 +246,25 @@ void PhaseLockedLoop::acceptIqData(
     None.
 
 *****************************************************************************/
-void PhaseLockedLoop::computeFrequencyError(uint32_t sampleCount)
+float PhaseLockedLoop::computeFrequencyError(int8_t iData,int8_t qData)
 {
-  uint32_t i;
-  float sum;
-  float *dataPtr;
+  float phaseError;
+  float frequencyError;
 
-  // Reference the begining of the demodulated data.
-  dataPtr = demodulatedData;
+  // Compute phase error.
+  phaseError = detectorPtr->computePhaseError((float)iData,
+                                             (float)qData,
+                                             iNco,
+                                             qNco);
+  // Filter the phase error.
+  phaseError = filterPtr->filterData(phaseError);
 
-  // This represents a frequency error over a block of IQ data.
-  sum = 0;
-
-  for (i = 0; i < sampleCount; i++)
-  {
-    sum += *dataPtr;
-
-    // Reference next item.
-    dataPtr++;
-  } // for
-
-  // Convert to an average frequency error for this block of data.
-  sum /= sampleCount;
-
-  // Accumulate the next average.
-  accumulatedFrequencyError += sum;
-
-  // One more measurement has been made.
-  frequencyMeasurementCount++;
-
-  if (frequencyMeasurementCount == numberOfAverages)
-  {
-    // Convert to average value of the averages.
-    accumulatedFrequencyError /= numberOfAverages;
-
-    // Map to actual frequency.
-    frequencyError = accumulatedFrequencyError * demodulatorGain;
-
-    // Set the NCO to the negative of the frequency error.
-    ncoPtr->setFrequency(-frequencyError);
-
-    // Reset for the next set of measurements.
-    accumulatedFrequencyError = 0;
-    frequencyMeasurementCount = 0;
-  } // if
-
-  return;
-
-} // computeFrequencyError
-
-/*****************************************************************************
-
-  Name: getFrequencyError
-
-  Purpose: The purpose of this function is to return the frequency error
-  from the last processed block of IQ data.
-
-  Calling Sequence: frequency = getFrequencyError()
-
-  Inputs:
-
-    None.
-
-  Outputs:
-
-    frequency - The frequency offset from the center frequency.  Ideally,
-    it should be zero.
-
-*****************************************************************************/
-float PhaseLockedLoop::getFrequencyError(void)
-{
+  // Convert to a frequency error.
+  frequencyError = K0 * phaseError * sampleRate / (2 * M_PI);
 
   return (frequencyError);
 
-} // getFrequencyError
+} // computeFrequencyError
 
 /*****************************************************************************
 
@@ -328,49 +286,42 @@ float PhaseLockedLoop::getFrequencyError(void)
     None.
 
 *****************************************************************************/
-void PhaseLockedLoop::derotateSignal(
-  int8_t *bufferPtr,
-  uint32_t bufferLength)
+void PhaseLockedLoop::derotateSignal(int8_t *iDataPtr,int8_t *qDataPtr)
 {
-  uint32_t i;
   float iIn;
   float qIn;
-  float iNco;
-  float qNco;
   float iOut;
   float qOut;
 
-  for (i = 0; i < bufferLength; i += 2)
-  {
-    // Retrieve in-phase component.
-    iIn = bufferPtr[i];
+  // Retrieve in-phase component.
+  iIn = (float)(*iDataPtr);
 
-    // Retrieve quadrature component.
-    qIn = bufferPtr[i+1];
+  // Retrieve quadrature component.
+  qIn = (float)(*qDataPtr);
 
-    // Retrieve the complex NCO output.
-    ncoPtr->run(&iNco,&qNco);
+  // Retrieve the complex NCO output.
+  ncoPtr->run(&iNco,&qNco);
 
-    //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
-    // Perform the frequency translation.  From complex analysis,
-    // (a + jb)(c + jd) = (ac - bd) + j(bc + ad).
-    // In our case,
-    // iIn is a.
-    // qIn is b.
-    // iNco is c.
-    // qNco is d.
-    //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
-    // Compute in-phase component of output.
-    iOut = (iIn * iNco) - (qIn * qNco);
+  //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+  // Perform the frequency translation.  From complex analysis,
+  // (a + jb)(c + jd) = (ac - bd) + j(bc + ad).
+  // In our case,
+  // iIn is a.
+  // qIn is b.
+  // iNco is c.
+  // qNco is d.
+  //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+  // Compute in-phase component of output.
+  iOut = (iIn * iNco) - (qIn * qNco);
 
-    // Compute quadrature component of output.
-    qOut = (qIn * iNco) + (iIn * qNco);    
-    //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+  // Compute quadrature component of output.
+  qOut = (qIn * iNco) + (iIn * qNco);    
+  //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 
-    // Store the outputs in place.
-    bufferPtr[i] = (int8_t)iOut;
-    bufferPtr[i+1] = (int8_t)qOut;
-  } // for  
+  // Store the outputs in place.
+  *iDataPtr = (int8_t)iOut;
+  *qDataPtr = (int8_t)qOut;
+
+  return;
 
 } // derotateSignal
-#endif

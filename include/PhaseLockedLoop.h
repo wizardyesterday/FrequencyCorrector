@@ -38,8 +38,8 @@ class PhaseLockedLoop
   //*******************************************************************
   // Utility functions.
   //*******************************************************************
-  float run(float iValue,float qValue);
-  void derotateSignal(int8_t *bufferPtr,uint32_t bufferLength);
+  float computeFrequencyError(int8_t iData,int8_t qData);
+  void derotateSignal(int8_t *iDataPtr,int8_t *qDataPtr);
 
   //*******************************************************************
   // Attributes.
@@ -72,6 +72,10 @@ class PhaseLockedLoop
 
   // Deadband for lock.
   float lockErrorThreshold;
+
+  // We need to supply these to the phase detector.
+  float iNco;
+  float qNco;
 
   PhaseDetector *detectorPtr;
   LoopFilter *filterPtr;

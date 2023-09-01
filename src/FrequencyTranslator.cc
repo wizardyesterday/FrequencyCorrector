@@ -404,4 +404,6 @@ void FrequencyTranslator::derotateSignal(
     bufferPtr[i+1] = (int8_t)qOut;
   } // for  
 
+  return;
+
 } // derotateSignal
