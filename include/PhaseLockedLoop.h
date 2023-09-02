@@ -29,8 +29,7 @@ class PhaseLockedLoop
   PhaseLockedLoop(float sampleRate);
  ~PhaseLockedLoop(void);
 
-  void acceptIqData(int8_t *bufferPtr,uint32_t bufferLength);
-  bool isLocked(void);
+  void run(int8_t *bufferPtr,uint32_t bufferLength);
   void reset(void);
 
   private:
@@ -70,8 +69,11 @@ class PhaseLockedLoop
   // This is, after all, a sampled system.
   float sampleRate;
 
+  // Have it here to make debugging easier.
+  float frequencyError;
+
   // Deadband for lock.
-  float lockErrorThreshold;
+  float lockErrorToleranceInHz;
 
   // We need to supply these to the phase detector.
   float iNco;

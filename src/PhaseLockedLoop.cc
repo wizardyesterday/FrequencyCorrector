@@ -21,13 +21,11 @@ using namespace std;
   parameters,  I'm not a fan of dealing with nasty/complicated
   expressions, hence, I de-uglified the code.
 
-  Calling Sequence: PhaseLockedLoop(sampleRate,numberOfAverages)
+  Calling Sequence: PhaseLockedLoop(sampleRate)
 
   Inputs:
 
     pcmCallbackPtr - The sample rate of the IQ data in S/s.
-
-    numberOfAverages - The number of frequency errors to average.
 
  Outputs:
 
@@ -40,6 +38,9 @@ PhaseLockedLoop::PhaseLockedLoop(float sampleRate)
   float factor2;
   float factor3;
   float factor4;
+
+  // Save for later use.
+  this->sampleRate = sampleRate;
 
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   // Set loop parameters. 
@@ -104,8 +105,8 @@ PhaseLockedLoop::PhaseLockedLoop(float sampleRate)
   // Instantiate the phase detector.
   detectorPtr = new PhaseDetector(Kd);
 
-  // Instatiate the NCO at a free-running frequency of 200Hz.
-  ncoPtr = new Nco(sampleRate,200);
+  // Instatiate the NCO at a free-running frequency of 0Hz.
+  ncoPtr = new Nco(sampleRate,0);
 
   return;
 
@@ -177,8 +178,8 @@ void PhaseLockedLoop::reset(void)
   filterPtr->reset();
   ncoPtr->reset();
 
-  // Set the free-running frequency to 200Hz.
-  ncoPtr->setFrequency(200);
+  // Set the free-running frequency to 0Hz.
+  ncoPtr->setFrequency(0);
 
   return;
 
@@ -186,12 +187,12 @@ void PhaseLockedLoop::reset(void)
 
 /*****************************************************************************
 
-  Name: acceptIqData
+  Name: run
 
   Purpose: The purpose of this function is to perform the high level
   processing that is associated with the processing of a signal.
 
-  Calling Sequence: acceptIqData(bufferPtr,bufferLength)
+  Calling Sequence: run(bufferPtr,bufferLength)
 
   Inputs:
 
@@ -202,44 +203,47 @@ void PhaseLockedLoop::reset(void)
 
   Outputs:
 
-    None.
+    Phase derotated IQ data.
 
 *****************************************************************************/
-void PhaseLockedLoop::acceptIqData(
-  int8_t *bufferPtr,
-  uint32_t bufferLength)
+void PhaseLockedLoop::run(int8_t *bufferPtr,uint32_t bufferLength)
 {
   uint32_t i;
-  float frequencyError;
 
   for (i = 0; i < bufferLength; i+= 2)
   {
     // First, the frequency offset, from baseband is computed.
     frequencyError = computeFrequencyError(bufferPtr[i],bufferPtr[i+1]); 
 
-    // Set the NCO to the negative of the frequency error.
-    ncoPtr->setFrequency(-frequencyError);
+    // Set the NCO to the the frequency error.
+    ncoPtr->setFrequency(frequencyError);
+
+    // Retrieve the next complex NCO output.
+    ncoPtr->run(&iNco,&qNco);
 
     // Perform the frequency correction.
     derotateSignal(&bufferPtr[i],&bufferPtr[i+1]);
+
   } // for
 
   return;
 
-} // acceptIqData
+} // run
 
 /*****************************************************************************
 
   Name: computeFrequencyError
 
   Purpose: The purpose of this function is to compute the frequency
-  error in a block of IQ samples.
+  error in a pair of IQ samples.
 
-  Calling Sequence: computeFrequencyError(sampleCount)
+  Calling Sequence: computeFrequencyError(iData,qData)
 
   Inputs:
 
-    sampleCount - The number of samples in the demodulated data buffer.
+    iData - The in-phase sample.
+
+    qData - The quadrature sample.
 
   Outputs:
 
@@ -249,7 +253,6 @@ void PhaseLockedLoop::acceptIqData(
 float PhaseLockedLoop::computeFrequencyError(int8_t iData,int8_t qData)
 {
   float phaseError;
-  float frequencyError;
 
   // Compute phase error.
   phaseError = detectorPtr->computePhaseError((float)iData,
@@ -276,14 +279,14 @@ float PhaseLockedLoop::computeFrequencyError(int8_t iData,int8_t qData)
 
   Inputs:
 
-    bufferPtr - A pointer to IQ data.
+    iDataPtr - A pointer to an in-phase sample.
 
-    bufferLength - The number of bytes contained in the buffer that is
-    in the buffer.
+    qDataPtr - A pointer to a quadrature sample.
 
   Outputs:
 
-    None.
+    Updated values of the in-phase and quadrature samples passed to
+    this function.
 
 *****************************************************************************/
 void PhaseLockedLoop::derotateSignal(int8_t *iDataPtr,int8_t *qDataPtr)
@@ -299,12 +302,9 @@ void PhaseLockedLoop::derotateSignal(int8_t *iDataPtr,int8_t *qDataPtr)
   // Retrieve quadrature component.
   qIn = (float)(*qDataPtr);
 
-  // Retrieve the complex NCO output.
-  ncoPtr->run(&iNco,&qNco);
-
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   // Perform the frequency translation.  From complex analysis,
-  // (a + jb)(c + jd) = (ac - bd) + j(bc + ad).
+  // (a + jb)(c - jd) = (ac + bd) + j(bc - ad).
   // In our case,
   // iIn is a.
   // qIn is b.
@@ -312,10 +312,10 @@ void PhaseLockedLoop::derotateSignal(int8_t *iDataPtr,int8_t *qDataPtr)
   // qNco is d.
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   // Compute in-phase component of output.
-  iOut = (iIn * iNco) - (qIn * qNco);
+  iOut = (iIn * iNco) + (qIn * qNco);
 
   // Compute quadrature component of output.
-  qOut = (qIn * iNco) + (iIn * qNco);    
+  qOut = (qIn * iNco) - (iIn * qNco);    
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 
   // Store the outputs in place.
@@ -325,3 +325,4 @@ void PhaseLockedLoop::derotateSignal(int8_t *iDataPtr,int8_t *qDataPtr)
   return;
 
 } // derotateSignal
+

@@ -15,3 +15,11 @@ And so it begins...
 
 Chris G. 08/21/2023
 
+#****************************************************************
+09/01/2023
+#****************************************************************
+We now have a working phase-locked loop.  It stablizes the
+Lissajous display nicely so that signal constellations can
+be viewed.
+
+
