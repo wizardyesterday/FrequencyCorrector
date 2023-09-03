@@ -37,7 +37,7 @@ class PhaseLockedLoop
   //*******************************************************************
   // Utility functions.
   //*******************************************************************
-  float computeFrequencyError(int8_t iData,int8_t qData);
+  void updateNcoFrequency(int8_t iData,int8_t qData);
   void derotateSignal(int8_t *iDataPtr,int8_t *qDataPtr);
 
   //*******************************************************************
@@ -70,10 +70,7 @@ class PhaseLockedLoop
   float sampleRate;
 
   // Have it here to make debugging easier.
-  float frequencyError;
-
-  // Deadband for lock.
-  float lockErrorToleranceInHz;
+  float ncoFrequency;
 
   // We need to supply these to the phase detector.
   float iNco;

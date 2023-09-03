@@ -96,7 +96,6 @@ PhaseLockedLoop::PhaseLockedLoop(float sampleRate)
   // Put it all together.
   Ki = factor1 * factor2 * factor3 * factor4;
   //************************************************************
-
  //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 
   // Instantiate the loop filter.
@@ -212,18 +211,14 @@ void PhaseLockedLoop::run(int8_t *bufferPtr,uint32_t bufferLength)
 
   for (i = 0; i < bufferLength; i+= 2)
   {
-    // First, the frequency offset, from baseband is computed.
-    frequencyError = computeFrequencyError(bufferPtr[i],bufferPtr[i+1]); 
+    // Update the NCO frequency.
+    updateNcoFrequency(bufferPtr[i],bufferPtr[i+1]); 
 
-    // Set the NCO to the the frequency error.
-    ncoPtr->setFrequency(frequencyError);
-
-    // Retrieve the next complex NCO output.
+    // Run, and retrieve the next complex NCO output.
     ncoPtr->run(&iNco,&qNco);
 
     // Perform the frequency correction.
     derotateSignal(&bufferPtr[i],&bufferPtr[i+1]);
-
   } // for
 
   return;
@@ -232,12 +227,12 @@ void PhaseLockedLoop::run(int8_t *bufferPtr,uint32_t bufferLength)
 
 /*****************************************************************************
 
-  Name: computeFrequencyError
+  Name: updateNcoFrequency
 
-  Purpose: The purpose of this function is to compute the frequency
-  error in a pair of IQ samples.
+  Purpose: The purpose of this function is to update the NCO frequency
+  based upon the phase error in a pair of IQ samples.
 
-  Calling Sequence: computeFrequencyError(iData,qData)
+  Calling Sequence: updateNcoFrequency(iData,qData)
 
   Inputs:
 
@@ -250,7 +245,7 @@ void PhaseLockedLoop::run(int8_t *bufferPtr,uint32_t bufferLength)
     None.
 
 *****************************************************************************/
-float PhaseLockedLoop::computeFrequencyError(int8_t iData,int8_t qData)
+void PhaseLockedLoop::updateNcoFrequency(int8_t iData,int8_t qData)
 {
   float phaseError;
 
@@ -259,15 +254,19 @@ float PhaseLockedLoop::computeFrequencyError(int8_t iData,int8_t qData)
                                              (float)qData,
                                              iNco,
                                              qNco);
+
   // Filter the phase error.
   phaseError = filterPtr->filterData(phaseError);
 
-  // Convert to a frequency error.
-  frequencyError = K0 * phaseError * sampleRate / (2 * M_PI);
+  // Convert to a frequency.
+  ncoFrequency = K0 * phaseError * sampleRate / (2 * M_PI);
 
-  return (frequencyError);
+  // Set the NCO to the new frequency.
+  ncoPtr->setFrequency(ncoFrequency);
 
-} // computeFrequencyError
+  return;
+
+} // updateNcoFrequency
 
 /*****************************************************************************
 
