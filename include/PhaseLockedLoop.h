@@ -26,7 +26,10 @@ class PhaseLockedLoop
 
   public:
 
-  PhaseLockedLoop(float sampleRate,float maxNcoFrequency);
+  PhaseLockedLoop(float sampleRate,
+                  float maxNcoFrequency,
+                  float initialNcoFrequency);
+
  ~PhaseLockedLoop(void);
 
   void run(int8_t *bufferPtr,uint32_t bufferLength);
@@ -71,6 +74,9 @@ class PhaseLockedLoop
 
   // This introduces saturation nonlinearity.
   float maxNcoFrequency;
+
+  // This frequency is then initial value of the NCO at startup.
+  float initialNcoFrequency;
 
   // Have it here to make debugging easier.
   float ncoFrequency;

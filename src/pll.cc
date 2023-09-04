@@ -11,7 +11,8 @@
 //
 // To run this program type,
 // 
-//    ./pll > -d <displaytype> -r <sampleRate> -f <maxNcoFrequency> <inputFile
+//    ./pll > -d <displaytype> -r <sampleRate> -f <maxNcoFrequency>
+//            -i <initialNcoFrequency> <inputFile
 //
 // where,
 //
@@ -19,6 +20,9 @@
 //
 //    maxNcoFrequency - The maximum frequency (magnitude) that the NCO
 //    can operate at.
+//
+//    initialNcoFrequency - The frequency of the NCO when the system
+//    first starts up.
 ///*************************************************************************
 #include <stdio.h>
 #include <stdint.h>
@@ -32,6 +36,7 @@ struct MyParameters
 {
   float *sampleRatePtr;
   float *maxNcoFrequencyPtr;
+  float *initialNcoFrequencyPtr;
 };
 
 /*****************************************************************************
@@ -72,6 +77,9 @@ bool getUserArguments(int argc,char **argv,struct MyParameters parameters)
 
   // Default to 2000Hz.
   *parameters.maxNcoFrequencyPtr = 2000;
+
+  // Default to 0Hz.
+  *parameters.initialNcoFrequencyPtr = 0;
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 
   // Set up for loop entry.
@@ -83,7 +91,7 @@ bool getUserArguments(int argc,char **argv,struct MyParameters parameters)
   while (!done)
   {
     // Retrieve the next option.
-    opt = getopt(argc,argv,"r:f:-Dh");
+    opt = getopt(argc,argv,"r:f:i:-Dh");
 
     switch (opt)
     {
@@ -99,10 +107,17 @@ bool getUserArguments(int argc,char **argv,struct MyParameters parameters)
         break;
       } // case
 
+      case 'i':
+      {
+        *parameters.initialNcoFrequencyPtr = atof(optarg);
+        break;
+      } // case
+
       case 'h':
       {
         // Display usage.
-        fprintf(stderr,"./pll -r sampleRate (S/s) -f maxNcoFrequency\n");
+        fprintf(stderr,"./pll -r sampleRate (S/s) -f maxNcoFrequency "
+                "-i initialNcoFrequency\n");
 
         // Indicate that program must be exited.
         exitProgram = true;
@@ -134,6 +149,7 @@ int main(int argc,char **argv)
   int8_t inputBuffer[16384];
   float sampleRate;
   float maxNcoFrequency;
+  float initialNcoFrequency;
   PhaseLockedLoop *pllPtr;
   struct MyParameters parameters;
 
@@ -142,6 +158,7 @@ int main(int argc,char **argv)
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   parameters.sampleRatePtr = &sampleRate;
   parameters.maxNcoFrequencyPtr = &maxNcoFrequency;
+  parameters.initialNcoFrequencyPtr = &initialNcoFrequency;
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 
   // Retrieve the system parameters.
@@ -154,7 +171,7 @@ int main(int argc,char **argv)
   } // if
 
   // Create a phase-locked loop.
-  pllPtr = new PhaseLockedLoop(sampleRate,maxNcoFrequency);
+  pllPtr = new PhaseLockedLoop(sampleRate,maxNcoFrequency,initialNcoFrequency);
 
   // Set up for loop entry.
   done = false;

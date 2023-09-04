@@ -21,7 +21,8 @@ using namespace std;
   parameters,  I'm not a fan of dealing with nasty/complicated
   expressions, hence, I de-uglified the code.
 
-  Calling Sequence: PhaseLockedLoop(sampleRate,maxNcoFrequency)
+  Calling Sequence: PhaseLockedLoop(sampleRate,maxNcoFrequency,
+                                    initialNcoFrequency)
 
   Inputs:
 
@@ -29,12 +30,17 @@ using namespace std;
 
     maxNcoFrequency - The maximum (magnitude) of the NCO frequency in Hz.
 
+    initialNcoFrequency - The initial frequency of the NCO at startup and
+    after a system reset.
+
  Outputs:
 
     None.
 
 *****************************************************************************/
-PhaseLockedLoop::PhaseLockedLoop(float sampleRate,float maxNcoFrequency)
+PhaseLockedLoop::PhaseLockedLoop(float sampleRate,
+                                 float maxNcoFrequency,
+                                 float initialNcoFrequency)
 {
   float factor1;
   float factor2;
@@ -44,6 +50,7 @@ PhaseLockedLoop::PhaseLockedLoop(float sampleRate,float maxNcoFrequency)
   // Save for later use.
   this->sampleRate = sampleRate;
   this->maxNcoFrequency = maxNcoFrequency;
+  this->initialNcoFrequency = initialNcoFrequency;
 
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   // Set loop parameters. 
@@ -107,8 +114,8 @@ PhaseLockedLoop::PhaseLockedLoop(float sampleRate,float maxNcoFrequency)
   // Instantiate the phase detector.
   detectorPtr = new PhaseDetector(Kd);
 
-  // Instatiate the NCO at a free-running frequency of 0Hz.
-  ncoPtr = new Nco(sampleRate,0);
+  // Instatiate the NCO at its free-running frequency.
+  ncoPtr = new Nco(sampleRate,initialNcoFrequency);
 
   return;
 
@@ -180,8 +187,8 @@ void PhaseLockedLoop::reset(void)
   filterPtr->reset();
   ncoPtr->reset();
 
-  // Set the free-running frequency to 0Hz.
-  ncoPtr->setFrequency(0);
+  // Set the free-running frequency to its initial value.
+  ncoPtr->setFrequency(initialNcoFrequency);
 
   return;
 
