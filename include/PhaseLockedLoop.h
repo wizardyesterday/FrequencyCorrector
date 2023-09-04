@@ -26,7 +26,7 @@ class PhaseLockedLoop
 
   public:
 
-  PhaseLockedLoop(float sampleRate);
+  PhaseLockedLoop(float sampleRate,float maxNcoFrequency);
  ~PhaseLockedLoop(void);
 
   void run(int8_t *bufferPtr,uint32_t bufferLength);
@@ -68,6 +68,9 @@ class PhaseLockedLoop
 
   // This is, after all, a sampled system.
   float sampleRate;
+
+  // This introduces saturation nonlinearity.
+  float maxNcoFrequency;
 
   // Have it here to make debugging easier.
   float ncoFrequency;

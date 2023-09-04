@@ -1,2 +1,2 @@
-g++ -O0 -g -I include -o pll src/test.cc src/PhaseDetector.cc src/LoopFilter.cc src/FrequencyTranslator.cc src/Nco.cc src/PhaseAccumulator.cc src/PhaseLockedLoop.cc
+g++ -O2 -I include -o pll src/pll.cc src/PhaseDetector.cc src/LoopFilter.cc src/Nco.cc src/PhaseAccumulator.cc src/PhaseLockedLoop.cc
 

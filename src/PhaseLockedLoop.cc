@@ -21,18 +21,20 @@ using namespace std;
   parameters,  I'm not a fan of dealing with nasty/complicated
   expressions, hence, I de-uglified the code.
 
-  Calling Sequence: PhaseLockedLoop(sampleRate)
+  Calling Sequence: PhaseLockedLoop(sampleRate,maxNcoFrequency)
 
   Inputs:
 
-    pcmCallbackPtr - The sample rate of the IQ data in S/s.
+    sampleRate - The sample rate of the incoming IQ data in S/s.
+
+    maxNcoFrequency - The maximum (magnitude) of the NCO frequency in Hz.
 
  Outputs:
 
     None.
 
 *****************************************************************************/
-PhaseLockedLoop::PhaseLockedLoop(float sampleRate)
+PhaseLockedLoop::PhaseLockedLoop(float sampleRate,float maxNcoFrequency)
 {
   float factor1;
   float factor2;
@@ -41,6 +43,7 @@ PhaseLockedLoop::PhaseLockedLoop(float sampleRate)
 
   // Save for later use.
   this->sampleRate = sampleRate;
+  this->maxNcoFrequency = maxNcoFrequency;
 
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   // Set loop parameters. 
@@ -260,6 +263,26 @@ void PhaseLockedLoop::updateNcoFrequency(int8_t iData,int8_t qData)
 
   // Convert to a frequency.
   ncoFrequency = K0 * phaseError * sampleRate / (2 * M_PI);
+
+  //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+  // Introduce saturation nonlinearity so that
+  // the loop does not run away without any
+  // bounds.
+  //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+  if (ncoFrequency > maxNcoFrequency)
+  {
+    // Clip to the upper limit.
+    ncoFrequency = maxNcoFrequency;
+  } // if
+  else
+  {
+    if (ncoFrequency < (-maxNcoFrequency))
+    {
+      // Clip to the lower limit.
+      ncoFrequency = -maxNcoFrequency;
+    } // if
+  } // else
+  //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 
   // Set the NCO to the new frequency.
   ncoPtr->setFrequency(ncoFrequency);
