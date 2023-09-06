@@ -46,6 +46,7 @@ PhaseLockedLoop::PhaseLockedLoop(float sampleRate,
   float factor2;
   float factor3;
   float factor4;
+  float maximumPhase;
 
   // Save for later use.
   this->sampleRate = sampleRate;
@@ -108,8 +109,11 @@ PhaseLockedLoop::PhaseLockedLoop(float sampleRate,
   //************************************************************
  //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 
+  // Compute the maximum allowable filtered phase.
+  maximumPhase = (2 * M_PI * maxNcoFrequency) / (K0 * sampleRate);
+
   // Instantiate the loop filter.
-  filterPtr = new LoopFilter(Kp,Ki);
+  filterPtr = new LoopFilter(Kp,Ki,maximumPhase);
 
   // Instantiate the phase detector.
   detectorPtr = new PhaseDetector(Kd);

@@ -31,12 +31,15 @@ using namespace std;
     None.
 
 *****************************************************************************/
-LoopFilter::LoopFilter(float proportionalGain,float integratorGain)
+LoopFilter::LoopFilter(float proportionalGain,
+                       float integratorGain,
+                       float maximumPhase)
 {
 
   // Save for filtering computations.
   this->proportionalGain = proportionalGain;
   this->integratorGain = integratorGain;
+  this->maximumPhase = maximumPhase;
 
   // Reset filter state.
   reset();
@@ -135,17 +138,17 @@ float LoopFilter::filterData(float x)
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   // Make sure that y2 doesn't grow without bound.
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
-  if (y2 > M_PI)
+  if (y2 > maximumPhase)
   {
     // Clip it.
-    y2 = M_PI;
+    y2 = maximumPhase;
   } // if
   else
   {
-    if (y2 < (-M_PI))
+    if (y2 < (-maximumPhase))
     {
       // Clip it.
-      y2 = -M_PI;
+      y2 = -maximumPhase;
     } // if
   } // else
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
@@ -159,17 +162,17 @@ float LoopFilter::filterData(float x)
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   // Make sure that y doesn't grow without bound.
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
-  if (y > M_PI)
+  if (y > maximumPhase)
   {
     // Clip it.
-    y = M_PI;
+    y = maximumPhase;
   } // if
   else
   {
-    if (y < (-M_PI))
+    if (y < (-maximumPhase))
     {
       // Clip it.
-      y = -M_PI;
+      y = -maximumPhase;
     } // if
   } // else
   //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/

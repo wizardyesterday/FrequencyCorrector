@@ -18,7 +18,7 @@ class LoopFilter
 
   public:
 
-  LoopFilter(float proportionalGain,float integratorGain);
+  LoopFilter(float proportionalGain,float integratorGain,float maximumPhase);
   ~LoopFilter(void);
 
   void reset(void);
@@ -30,6 +30,9 @@ class LoopFilter
   // These are the gains for the PI filter.
   float proportionalGain;
   float integratorGain;
+
+  // This limits the filtered phase error.
+  float maximumPhase;
 
   // State memory for recursive portion of the filter.
   float recursiveState;
